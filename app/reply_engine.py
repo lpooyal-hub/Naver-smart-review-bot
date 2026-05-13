@@ -37,7 +37,7 @@ class ReplyEngine:
         if sentiment == ReviewSentiment.POSITIVE:
             text = (
                 f"{review.author} 고객님, 소중한 후기 감사합니다. "
-                "제품을 만족스럽게 사용해주셨다니 정말 기쁩니다. "
+                "상품을 만족스럽게 사용해 주신다니 정말 기쁩니다. "
                 "앞으로도 좋은 품질과 빠른 응대로 보답하겠습니다."
             )
         elif sentiment == ReviewSentiment.NEGATIVE:
@@ -58,13 +58,12 @@ class ReplyEngine:
         content = review.content.lower()
         negative_keywords = [
             "별로",
-            "실망",
+            "아쉬",
             "불편",
-            "늦",
+            "안 좋아",
             "파손",
             "환불",
             "교환",
-            "냄새",
             "문제",
             "bad",
             "disappointed",
@@ -90,7 +89,7 @@ class ReplyEngine:
 
 def sample_reviews() -> list[Review]:
     return [
-        Review(author="테스트고객1", rating=5, content="배송 빠르고 상품도 마음에 들어요. 재구매할게요."),
-        Review(author="테스트고객2", rating=3, content="무난합니다. 아직 오래 써보진 않았어요."),
-        Review(author="테스트고객3", rating=1, content="배송이 늦고 포장이 조금 파손되어 왔습니다."),
+        Review(author="테스트고객", rating=5, content="배송 빠르고 상품도 마음에 들어요. 재구매할게요."),
+        Review(author="테스트고객", rating=3, content="무난합니다. 아직 오래 써보지는 않았어요."),
+        Review(author="테스트고객", rating=1, content="배송이 늦고 포장이 조금 파손되어 왔습니다."),
     ]
