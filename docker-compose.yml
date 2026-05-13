@@ -1,0 +1,5 @@
+services:
+  review-reply-bot:
+    build: .
+    image: naver-review-reply-bot:local
+    command: python -m app.main
