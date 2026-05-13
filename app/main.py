@@ -84,6 +84,8 @@ def main() -> None:
     for index, review in enumerate(reviews, start=1):
         reply = engine.generate(review)
         print(f"[{index}] 리뷰")
+        if review.review_id:
+            print(f"- 리뷰ID: {review.review_id}")
         print(f"- 작성자: {review.author}")
         print(f"- 평점: {review.rating}")
         print(f"- 내용: {review.content}")

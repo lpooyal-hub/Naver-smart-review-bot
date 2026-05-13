@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import re
 from collections.abc import Iterable
 from pathlib import Path
@@ -130,10 +131,10 @@ def _append_reviews(
     for block in review_blocks:
         for text in _visible_texts(block, limit=limit * 3):
             review = _parse_review(text)
-            if review is None or review.content in seen:
+            if review is None or review.review_id in seen:
                 continue
 
-            seen.add(review.content)
+            seen.add(review.review_id)
             reviews.append(review)
             if len(reviews) >= limit:
                 return
@@ -141,9 +142,10 @@ def _append_reviews(
     body_texts = page.locator("body").inner_text().splitlines()
     for text in body_texts:
         content = _clean_review_text(text)
-        if _looks_like_review(content) and content not in seen:
-            seen.add(content)
-            reviews.append(Review(author="작성자확인필요", rating=3, content=content))
+        review_id = _make_review_id(content=content, rating=3)
+        if _looks_like_review(content) and review_id not in seen:
+            seen.add(review_id)
+            reviews.append(Review(author="고객님", rating=3, content=content, review_id=review_id))
             if len(reviews) >= limit:
                 return
 
@@ -198,7 +200,12 @@ def _parse_review(text: str) -> Review | None:
     if not _looks_like_review(content):
         return None
 
-    return Review(author=author, rating=rating, content=content)
+    return Review(
+        author=author,
+        rating=rating,
+        content=content,
+        review_id=_make_review_id(content=content, rating=rating),
+    )
 
 
 def _extract_author(lines: list[str]) -> str:
@@ -213,20 +220,24 @@ def _extract_author(lines: list[str]) -> str:
         "옵션",
         "한달사용기",
         "재구매",
+        "동영상",
+        "동영상컨텐츠",
+        "사진",
+        "사진컨텐츠",
+        "이미지",
+        "이미지컨텐츠",
+        "더보기",
     }
     masked_id_pattern = re.compile(r"^[\w가-힣]{1,12}\*{2,}[\w가-힣]*$")
 
     for line in lines[:8]:
         compact = line.replace(" ", "")
-        if compact in blocked:
+        if compact in blocked or _is_ui_label(compact):
             continue
         if masked_id_pattern.match(compact):
             return compact
-        if 2 <= len(compact) <= 12 and not any(char.isdigit() for char in compact):
-            if not any(keyword in compact for keyword in ("평점", "옵션", "배송", "상품", "구매")):
-                return compact
 
-    return "작성자확인필요"
+    return "고객님"
 
 
 def _extract_rating(lines: list[str]) -> int:
@@ -259,6 +270,9 @@ def _extract_content(lines: list[str]) -> str:
         "판매자",
         "옵션",
         "작성자",
+        "동영상",
+        "사진",
+        "이미지",
     )
     metadata_patterns = [
         re.compile(r"^[\w가-힣]{1,12}\*{2,}[\w가-힣]*$"),
@@ -270,6 +284,8 @@ def _extract_content(lines: list[str]) -> str:
 
     for line in lines:
         if any(line.startswith(prefix) for prefix in blocked_prefixes):
+            continue
+        if _is_ui_label(line.replace(" ", "")):
             continue
         if any(pattern.match(line.replace(" ", "")) for pattern in metadata_patterns):
             continue
@@ -288,3 +304,24 @@ def _looks_like_review(text: str) -> bool:
 
     review_markers = ("좋", "만족", "배송", "구매", "상품", "사용", "아쉬", "빠르", "향", "피부")
     return any(marker in text for marker in review_markers)
+
+
+def _is_ui_label(text: str) -> bool:
+    ui_keywords = (
+        "동영상컨텐츠",
+        "사진컨텐츠",
+        "이미지컨텐츠",
+        "리뷰도움",
+        "도움돼요",
+        "신고하기",
+        "판매자답글",
+        "더보기",
+        "접기",
+    )
+    return text in ui_keywords or text.endswith("컨텐츠")
+
+
+def _make_review_id(content: str, rating: int) -> str:
+    normalized = re.sub(r"\s+", " ", content).strip()
+    digest = hashlib.sha1(f"{rating}:{normalized}".encode("utf-8")).hexdigest()[:10]
+    return f"review-{digest}"
